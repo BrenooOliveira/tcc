@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Defesa TCC — Comparação de Bancos Vetoriais em Pipelines RAG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --red:        #c8102e;
+  --red-dark:   #921628;
+  --red-bg:     rgba(200,16,46,.09);
+  --gray:       #212121;
+  --gray-2:     #757575;
+  --gray-soft:  rgba(33,33,33,.06);
+  --ice:        #f5f5f7;
+  --blue:       #0056b3;
+  --blue-bg:    rgba(0,86,179,.07);
+  --white:      #ffffff;
+  --success:    #1f8a4c;
+  --warning:    #d97706;
+  --shadow:     0 16px 36px rgba(33,33,33,.12);
+  --shadow-sm:  0 6px 18px rgba(33,33,33,.07);
+  --r-lg: 24px;
+  --r-md: 16px;
+  --r-sm: 10px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Inter','Segoe UI',sans-serif;
+  background:#1a1a1a;
+  color:var(--gray);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+img{max-width:100%;display:block}
+button{cursor:pointer;font:inherit;border:none;background:none}
+
+/* ═══════════════════════════════════════════════
+   DECK SHELL
+═══════════════════════════════════════════════ */
+.deck-shell{
+  width:100vw;height:100vh;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  background:#1a1a1a;
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+.deck-header{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:linear-gradient(135deg,var(--gray) 0%,#171717 100%);
+  color:var(--white);
+  padding:10px 24px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.brand-block{display:flex;align-items:center;gap:14px}
+.brand-logo{display:flex;align-items:center;flex-shrink:0}
+.brand-logo img{height:34px;width:auto}
+.brand-divider{width:1px;height:28px;background:rgba(255,255,255,.18);margin:0 14px}
+.brand-text .eyebrow{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.brand-text .title{font-size:.95rem;font-weight:800;letter-spacing:.01em;line-height:1.2}
+.deck-nav-top{display:flex;align-items:center;gap:10px;font-size:.75rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.slide-counter{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.75);background:rgba(255,255,255,.08);padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.1)}
+
+/* ═══════════════════════════════════════════════
+   STAGE
+═══════════════════════════════════════════════ */
+.deck-stage{
+  position:relative;
+  overflow:hidden;
+  background:var(--ice);
+}
+
+/* ═══════════════════════════════════════════════
+   SLIDES
+═══════════════════════════════════════════════ */
+.slide{
+  position:absolute;inset:0;
+  display:none;
+  overflow-y:auto;
+  padding:32px clamp(24px,4vw,64px) 24px;
+  background:linear-gradient(160deg,#ffffff 0%,var(--ice) 100%);
+  animation:fadeIn .22s ease;
+}
+.slide.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.slide-content{max-width:1160px;margin:0 auto}
+
+/* ═══════════════════════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════════════════════ */
+.kicker{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--red-bg);border-radius:999px;
+  padding:5px 14px;
+  color:var(--red);font-weight:800;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:12px;
+}
+h1{font-size:clamp(2rem,4.5vw,4rem);line-height:.95;letter-spacing:-.05em;margin-bottom:16px;font-weight:900}
+h2{font-size:clamp(1.6rem,3.1vw,2.65rem);line-height:1.06;letter-spacing:-.04em;margin-bottom:12px;font-weight:900}
+h3{font-size:1.08rem;font-weight:800;margin-bottom:8px;letter-spacing:-.01em}
+p,li,td,th{font-size:.95rem;line-height:1.6}
+.lead{font-size:clamp(.98rem,1.5vw,1.22rem);line-height:1.65;color:var(--gray);max-width:68ch}
+strong{font-weight:800}
+
+/* ═══════════════════════════════════════════════
+   GRIDS
+═══════════════════════════════════════════════ */
+.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.three-col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.four-col{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;align-items:center}
+.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}.mt24{margin-top:24px}
+
+/* ═══════════════════════════════════════════════
+   CARDS & PANELS
+═══════════════════════════════════════════════ */
+.card,.panel,.metric-card{
+  background:rgba(255,255,255,.9);
+  border:1px solid rgba(33,33,33,.08);
+  border-radius:var(--r-md);
+  padding:18px 18px;
+  box-shadow:var(--shadow-sm);
+}
+.card-red{border-top:3px solid var(--red)}
+.card-blue{border-top:3px solid var(--blue)}
+.card-green{border-top:3px solid var(--success)}
+.card-warn{border-top:3px solid var(--warning)}
+.accent-blue{background:var(--blue-bg);border-color:rgba(0,86,179,.16)}
+.accent-red{background:var(--red-bg);border-color:rgba(200,16,46,.16)}
+
+.icon-box{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:38px;height:38px;border-radius:11px;
+  background:var(--red-bg);color:var(--red);font-weight:900;font-size:.85rem;
+  font-family:'JetBrains Mono',monospace;margin-bottom:10px;flex-shrink:0;
+}
+.icon-box.blue{background:var(--blue-bg);color:var(--blue)}
+.icon-box.green{background:rgba(31,138,76,.1);color:var(--success)}
+
+/* ═══════════════════════════════════════════════
+   BIG NUMBERS
+═══════════════════════════════════════════════ */
+.big-num{font-size:clamp(1.8rem,3.4vw,2.9rem);font-weight:900;letter-spacing:-.04em;line-height:1}
+.big-num.red{color:var(--red)}
+.big-num.blue{color:var(--blue)}
+.big-num.green{color:var(--success)}
+.num-label{font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-2);margin-top:4px}
+
+/* ═══════════════════════════════════════════════
+   PIPELINE HORIZONTAL (SLIDE 9)
+═══════════════════════════════════════════════ */
+.pipeline-h{
+  display:grid;
+  grid-template-columns:1fr auto 1fr auto 1fr;
+  gap:14px;
+  align-items:stretch;
+  margin-top:20px;
+}
+.pipe-phase{
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(33,33,33,.1);
+  border-radius:var(--r-md);
+  padding:22px 18px;
+  box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:12px;
+  min-height:255px;
+  justify-content:center;
+}
+.pipe-phase.p1{border-top:4px solid var(--blue)}
+.pipe-phase.p2{border-top:4px solid var(--red)}
+.pipe-phase.p3{border-top:4px solid var(--success)}
+.pipe-step{
+  background:var(--ice);
+  border-radius:10px;
+  padding:11px 14px;
+  font-size:.92rem;
+  font-weight:700;
+  color:var(--gray);
+  border-left:4px solid rgba(33,33,33,.2);
+}
+.pipe-arrow{
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;font-weight:900;color:var(--blue);
+}
+
+/* ═══════════════════════════════════════════════
+   TABLES
+═══════════════════════════════════════════════ */
+.table-wrap{overflow-x:auto;margin-top:12px;border-radius:var(--r-md);box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.92);font-size:.86rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(33,33,33,.07)}
+th{background:var(--red-bg);font-weight:800;font-size:.76rem;letter-spacing:.04em;text-transform:uppercase;color:var(--gray)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(200,16,46,.03)}
+.td-best{color:var(--success);font-weight:800}
+.td-warn{color:var(--warning);font-weight:700}
+.td-bad{color:var(--red);font-weight:700}
+.td-mono{font-family:'JetBrains Mono',monospace;font-size:.8rem}
+
+/* ═══════════════════════════════════════════════
+   LISTS (FIXED: block + absolute bullet, no flex-split bug)
+═══════════════════════════════════════════════ */
+ul.clean{list-style:none;padding:0;display:grid;gap:8px}
+ul.clean li{
+  display:block;
+  position:relative;
+  padding-left:18px;
+  font-size:.9rem;
+  line-height:1.55;
+}
+ul.clean li::before{
+  content:'▸';
+  position:absolute;
+  left:0;
+  top:0;
+  color:var(--red);
+  font-weight:900;
+}
+
+/* ═══════════════════════════════════════════════
+   TAG / BADGE
+═══════════════════════════════════════════════ */
+.tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.tag-red{background:var(--red-bg);color:var(--red)}
+.tag-blue{background:var(--blue-bg);color:var(--blue)}
+.tag-green{background:rgba(31,138,76,.1);color:var(--success)}
+.tag-warn{background:rgba(217,119,6,.12);color:var(--warning)}
+.tag-gray{background:rgba(33,33,33,.07);color:var(--gray-2)}
+
+/* ═══════════════════════════════════════════════
+   COVER SPECIAL
+═══════════════════════════════════════════════ */
+.slide-cover{
+  background:linear-gradient(135deg,var(--gray) 0%,#171717 60%,#2a1010 100%);
+  color:var(--white);
+  flex-direction:column;
+  justify-content:center;
+  min-height:100%;
+}
+.slide-cover.active{display:flex}
+.slide-cover .kicker{background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.12)}
+.slide-cover h1{color:var(--white)}
+.slide-cover .lead{color:rgba(255,255,255,.75)}
+.cover-meta{margin-top:26px;display:flex;flex-direction:column;gap:8px}
+.cover-row{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.65);font-size:.9rem}
+.cover-row strong{color:var(--white);font-weight:700}
+.cover-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.cover-badge{display:inline-flex;align-items:center;padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.75);font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+
+/* ═══════════════════════════════════════════════
+   AGENDA (COLUMN-FIRST: 1-4 left, 5-8 right)
+═══════════════════════════════════════════════ */
+.agenda-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(4,auto);
+  grid-auto-flow:column;
+  gap:12px;
+  margin-top:18px;
+}
+.agenda-item{
+  display:flex;align-items:flex-start;gap:12px;
+  background:rgba(255,255,255,.88);border:1px solid rgba(33,33,33,.07);
+  border-radius:var(--r-sm);padding:14px 16px;
+  box-shadow:var(--shadow-sm);
+}
+.agenda-num{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--red-bg);color:var(--red);
+  font-weight:900;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.agenda-text{font-size:.9rem;font-weight:700;line-height:1.35}
+.agenda-sub{font-size:.77rem;color:var(--gray-2);font-weight:400;margin-top:2px}
+
+/* ═══════════════════════════════════════════════
+   CLOSING SLIDE
+═══════════════════════════════════════════════ */
+.slide-closing{
+  background:linear-gradient(135deg,var(--gray) 0%,#171717 60%,#2a1010 100%);
+  color:var(--white);
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  min-height:100%;
+}
+.slide-closing.active{display:flex}
+.slide-closing h2{color:var(--white)}
+.slide-closing .lead{color:rgba(255,255,255,.7)}
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+.deck-footer{
+  display:flex;align-items:center;gap:14px;
+  background:#111;color:rgba(255,255,255,.7);
+  padding:10px 20px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.progress-bar{flex:1;height:4px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+.progress-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--blue));border-radius:inherit;transition:width .28s cubic-bezier(.4,0,.2,1)}
+.nav-btn{
+  border-radius:var(--r-sm);padding:7px 14px;font-weight:700;font-size:.82rem;
+  transition:transform .15s ease,box-shadow .15s ease;
+  border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.8);
+  background:rgba(255,255,255,.07);
+}
+.nav-btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.13)}
+.nav-btn.primary{background:linear-gradient(135deg,var(--red),var(--red-dark));border-color:transparent;color:var(--white);box-shadow:0 6px 18px rgba(200,16,46,.3)}
+.nav-btn.primary:hover{box-shadow:0 8px 22px rgba(200,16,46,.4)}
+.footer-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+
+/* ═══════════════════════════════════════════════
+   CHART CARDS & SVG CHARTS
+═══════════════════════════════════════════════ */
+.chart-card{
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(33,33,33,.08);
+  border-radius:var(--r-md);
+  padding:16px 18px;
+  box-shadow:var(--shadow-sm);
+}
+.chart-title{
+  font-size:.82rem;font-weight:800;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--gray);margin-bottom:10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.chart-sub{font-size:.72rem;font-weight:600;color:var(--gray-2);text-transform:none;letter-spacing:0}
+.bar-list{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:110px 1fr 78px;align-items:center;gap:10px}
+.bar-label{font-size:.8rem;font-weight:700;color:var(--gray)}
+.bar-track{height:22px;background:rgba(33,33,33,.06);border-radius:999px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:999px;transition:width .35s ease}
+.bar-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;text-align:right;color:var(--gray)}
+.fill-faiss{background:linear-gradient(90deg,var(--red),#e02443)}
+.fill-ivf{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.fill-milvus{background:linear-gradient(90deg,var(--blue),#1e78d6)}
+.fill-chroma{background:linear-gradient(90deg,var(--success),#2ca55e)}
+.fill-timeout{background:repeating-linear-gradient(45deg,rgba(217,119,6,.25),rgba(217,119,6,.25) 6px,rgba(217,119,6,.1) 6px,rgba(217,119,6,.1) 12px)}
+
+/* ═══════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════ */
+.separator{height:1px;background:rgba(33,33,33,.08);margin:14px 0}
+.code{font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(33,33,33,.06);border-radius:6px;padding:2px 7px;color:var(--gray)}
+.fig-caption{font-size:.72rem;color:var(--gray-2);margin-top:6px;font-style:italic}
+.text-red{color:var(--red)}
+.text-blue{color:var(--blue)}
+.text-green{color:var(--success)}
+.text-gray{color:var(--gray-2)}
+.fw-900{font-weight:900}
+.flex-col{display:flex;flex-direction:column}
+.result-img{width:100%;height:auto;border-radius:var(--r-sm);box-shadow:var(--shadow-sm)}
+.kbd{display:inline-flex;padding:2px 6px;border:1px solid rgba(255,255,255,.25);border-radius:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.6)}
+
+@media print{
+  .deck-footer,.deck-header{display:none}
+  .slide{position:relative!important;page-break-after:always;display:block!important;min-height:100vh}
+}
+</style>
+</head>
+<body>
+<div class="deck-shell">
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header class="deck-header">
+    <div class="brand-block">
+      <div class="brand-logo">
+        <img src="../assets/logo_fatec_branco.svg" alt="FATEC" />
+      </div>
+      <div class="brand-divider"></div>
+      <div class="brand-text">
+        <div class="eyebrow">Faculdade de Tecnologia do Estado de SP — Mogi das Cruzes</div>
+        <div class="title">ADS · Defesa de TCC · Novembro 2026</div>
+      </div>
+    </div>
+    <div class="deck-nav-top">
+      <span class="kbd">←</span><span class="kbd">→</span>
+      <span style="margin-left:4px;font-size:.7rem">navegar</span>
+      <div class="slide-counter" id="slideCounter">1 / 20</div>
+    </div>
+  </header>
+
+  <!-- ══════════ STAGE ══════════ -->
+  <main class="deck-stage" id="stage">
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 1 — CAPA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide slide-cover active" id="slide-1">
+      <div class="slide-content">
+        <div class="kicker">Trabalho de Conclusão de Curso · Análise e Desenvolvimento de Sistemas</div>
+        <h1>Comparação de<br>Bancos Vetoriais<br><span style="color:var(--red)">em Pipelines RAG</span></h1>
+        <p class="lead">FAISS · Milvus · Chroma — desempenho, escalabilidade e qualidade de recuperação semântica</p>
+
+        <div class="cover-meta">
+          <div class="cover-row">
+            <span style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4)">Autor</span>
+            <strong>Breno Alves de Oliveira</strong>
+          </div>
+          <div class="cover-row">
+            <span style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4)">Orientadora</span>
+            <strong>Prof. Esp. Mariangela Ferreira Fuentes Molina</strong>
+          </div>
+        </div>
+
+        <div class="cover-badges">
+          <span class="cover-badge">3 Bancos Vetoriais</span>
+          <span class="cover-badge">3 Cenários de Escala</span>
+          <span class="cover-badge">IC 95% · Wilcoxon</span>
+          <span class="cover-badge">Código Aberto · MIT</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 2 — AGENDA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-2">
+      <div class="slide-content">
+        <div class="kicker">Roteiro</div>
+        <h2>Agenda da apresentação</h2>
+
+        <div class="agenda-grid">
+          <div class="agenda-item"><div class="agenda-num">1</div><div><div class="agenda-text">Contexto &amp; Motivação</div><div class="agenda-sub">LLMs, limitações e mercado de bancos vetoriais</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">2</div><div><div class="agenda-text">Problema &amp; Objetivos</div><div class="agenda-sub">Lacuna de evidência e questão norteadora</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">3</div><div><div class="agenda-text">Fundamentação Teórica</div><div class="agenda-sub">RAG, índices vetoriais e os três candidatos</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">4</div><div><div class="agenda-text">Metodologia &amp; Métricas</div><div class="agenda-sub">Pipeline, cenários S1/S2/S3, Recall@k e estatística</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">5</div><div><div class="agenda-text">Resultados por Cenário</div><div class="agenda-sub">S1 (10k) · S2 (100k) · S3 (500k vetores)</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">6</div><div><div class="agenda-text">Análise Estatística</div><div class="agenda-sub">Intervalo de confiança 95% e teste de Wilcoxon</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">7</div><div><div class="agenda-text">Trade-offs &amp; Recomendações</div><div class="agenda-sub">Perfil de cada banco e matriz de escolha</div></div></div>
+          <div class="agenda-item"><div class="agenda-num">8</div><div><div class="agenda-text">Conclusão &amp; Encerramento</div><div class="agenda-sub">Resposta à questão norteadora</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 3 — CONTEXTO E MOTIVAÇÃO
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-3">
+      <div class="slide-content">
+        <div class="kicker">Cap. 1 — Introdução</div>
+        <h2>Contexto &amp; Motivação</h2>
+        <div class="hero-grid mt12">
+          <div>
+            <p class="lead" style="margin-bottom:14px">LLMs revolucionaram o PLN, mas apresentam <strong>três limitações estruturais</strong> em cenários de precisão factual:</p>
+            <div class="three-col">
+              <div class="card card-red">
+                <div class="icon-box" style="font-size:1.1rem">🌀</div>
+                <h3>Alucinação</h3>
+                <p style="font-size:.84rem;color:var(--gray-2)">Texto fluente, porém factualmente incorreto ou sem evidência.</p>
+              </div>
+              <div class="card card-red">
+                <div class="icon-box" style="font-size:1.1rem">📏</div>
+                <h3>Janela finita</h3>
+                <p style="font-size:.84rem;color:var(--gray-2)">Limite de contexto impede processar grandes bases de documentos.</p>
+              </div>
+              <div class="card card-red">
+                <div class="icon-box" style="font-size:1.1rem">🕰</div>
+                <h3>Conhecimento estático</h3>
+                <p style="font-size:.84rem;color:var(--gray-2)">Retreinamento oneroso para incorporar informações novas.</p>
+              </div>
+            </div>
+            <div class="card accent-blue mt16">
+              <p style="font-size:.88rem"><strong>Geração Aumentada de Recuperação (RAG):</strong> conecta o modelo de linguagem a uma base externa de vetores para buscar contexto atualizado e gerar respostas ancoradas em fatos <span class="text-gray">(Lewis et al., 2020)</span>.</p>
+            </div>
+          </div>
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-blue" style="text-align:center">
+              <div class="big-num blue">$1,73 bi</div>
+              <div class="num-label">Mercado de Bancos Vetoriais — 2024</div>
+              <div class="separator"></div>
+              <div class="big-num blue">$10,6 bi</div>
+              <div class="num-label">Projeção para 2032 · Grand View Research</div>
+            </div>
+            <div class="card" style="text-align:center">
+              <div style="font-size:.78rem;color:var(--gray-2);margin-bottom:4px;font-weight:700;letter-spacing:.06em;text-transform:uppercase">Crescimento projetado</div>
+              <div class="big-num red">+513%</div>
+              <div class="num-label">em 8 anos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 4 — O PROBLEMA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-4">
+      <div class="slide-content">
+        <div class="kicker">Cap. 1.1 — Apresentação do Problema</div>
+        <h2>A lacuna na literatura</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="card card-red">
+            <h3>Por que escolher um banco vetorial é difícil?</h3>
+            <p style="font-size:.88rem;color:var(--gray-2);margin-bottom:12px">A busca vetorial é o gargalo de qualidade do RAG, mas falta evidência comparativa neutra:</p>
+            <ul class="clean">
+              <li><strong>Benchmarks de fornecedores:</strong> tendem a favorecer a própria ferramenta.</li>
+              <li><strong>ANN-Benchmarks:</strong> mede apenas busca bruta, ignorando ingestão e persistência.</li>
+              <li><strong>Estudos isolados:</strong> variam em hardware, volume e métricas, impedindo comparação direta.</li>
+              <li><strong>Decisão sem evidência:</strong> equipes escolhem por intuição ou documentação comercial.</li>
+            </ul>
+          </div>
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-red accent-red">
+              <div class="tag tag-red" style="margin-bottom:8px">Questão norteadora</div>
+              <p style="font-size:.92rem;line-height:1.6;font-weight:600">"Qual solução apresenta o melhor <strong>equilíbrio entre desempenho, escalabilidade e taxa de acerto</strong> relativa à referência exata em diferentes volumes de dados?"</p>
+            </div>
+            <div class="card card-blue accent-blue">
+              <div class="tag tag-blue" style="margin-bottom:8px">Contribuição específica</div>
+              <p style="font-size:.9rem;line-height:1.6">Comparação sistemática, controlada e <strong>reprodutível</strong> entre FAISS, Milvus e Chroma — avaliando ingestão, latência, recursos e Recall@k com rigor estatístico.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 5 — OBJETIVOS
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-5">
+      <div class="slide-content">
+        <div class="kicker">Cap. 1.2 — Objetivos</div>
+        <h2>O que este trabalho entrega</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="card card-blue">
+            <div class="tag tag-blue" style="margin-bottom:10px">Objetivo Geral</div>
+            <p style="font-size:.96rem;line-height:1.65">Comparar de forma sistemática e reprodutível <strong>FAISS, Milvus Lite e Chroma</strong> como camada de busca em pipelines RAG, avaliando <strong>desempenho, escalabilidade e taxa de acerto</strong> para orientar decisões arquiteturais.</p>
+          </div>
+          <div class="card">
+            <h3>Objetivos Específicos</h3>
+            <ul class="clean" style="margin-top:8px">
+              <li>Caracterizar arquiteturas e algoritmos de busca vetorial (<span class="code">HNSW</span>, <span class="code">IVF</span>, <span class="code">PQ</span>).</li>
+              <li>Implementar pipeline padronizado com as bibliotecas <strong>nativas</strong> de cada solução.</li>
+              <li>Avaliar em <strong>3 cenários de escala</strong>: 10 mil, 100 mil e 500 mil vetores.</li>
+              <li>Mensurar latência (p50/p99), throughput, RAM, disco e Recall@k.</li>
+              <li>Identificar vantagens relativas e disponibilizar código aberto (MIT).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="four-col mt20">
+          <div class="card" style="text-align:center">
+            <div class="big-num red">3</div>
+            <div class="num-label">bancos comparados</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="big-num blue">3</div>
+            <div class="num-label">cenários de escala</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="big-num green">10×</div>
+            <div class="num-label">repetições por config.</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="big-num" style="color:var(--gray)">200</div>
+            <div class="num-label">queries por cenário</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 6 — RAG FUNDAMENTAÇÃO
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-6">
+      <div class="slide-content">
+        <div class="kicker">Cap. 2.2 — Fundamentação Teórica</div>
+        <h2>Arquitetura RAG</h2>
+        <div class="card mt12" style="padding:18px 20px">
+          <svg viewBox="0 0 1100 410" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Segoe UI,sans-serif" style="width:100%;height:auto">
+            <defs>
+              <marker id="arrow-dark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#444"/>
+              </marker>
+            </defs>
+
+            <!-- Container cinza direito (Pipeline Principal) -->
+            <rect x="405" y="18" width="680" height="330" rx="14" fill="#eef2f7" stroke="#d1d5db" stroke-width="1.5"/>
+            <text x="1068" y="42" text-anchor="end" font-size="12" font-weight="700" fill="#64748b">Orquestração (LangChain / LlamaIndex)</text>
+
+            <!-- Container cinza esquerdo (Pré-processamento) -->
+            <rect x="195" y="34" width="182" height="146" rx="12" fill="#eef2f7" stroke="#d1d5db" stroke-width="1.5"/>
+
+            <!-- Badge 1: Document Ingestion -->
+            <circle cx="28" cy="36" r="14" fill="#1f8a4c"/>
+            <text x="28" y="41" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">1</text>
+            <text x="50" y="41" font-size="14" font-weight="800" fill="#1f8a4c">Document Ingestion (Offline)</text>
+
+            <!-- Base de Conhecimento (Ícone Cilindro + Texto) -->
+            <ellipse cx="95" cy="80" rx="22" ry="7" fill="#ffffff" stroke="#212121" stroke-width="2"/>
+            <path d="M73 80 v32 c0 4 10 7 22 7 s22 -3 22 -7 v-32" fill="#ffffff" stroke="#212121" stroke-width="2"/>
+            <path d="M73 96 c0 4 10 7 22 7 s22 -3 22 -7" fill="none" stroke="#212121" stroke-width="1.8"/>
+            <text x="95" y="140" text-anchor="middle" font-size="13" font-weight="800" fill="#212121">Base de Conhecimento</text>
+            <text x="95" y="157" text-anchor="middle" font-size="11.5" font-style="italic" fill="#757575">PDFs, Docs, Wikis...</text>
+
+            <!-- Seta Base -> Preprocess -->
+            <line x1="126" y1="100" x2="210" y2="100" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+            <!-- Box Preprocess Documents -->
+            <rect x="218" y="66" width="136" height="78" rx="10" fill="#1f8a4c"/>
+            <text x="286" y="100" text-anchor="middle" font-size="13.5" font-weight="800" fill="#ffffff">Pré-processar</text>
+            <text x="286" y="118" text-anchor="middle" font-size="13.5" font-weight="800" fill="#ffffff">Documentos</text>
+            <text x="286" y="166" text-anchor="middle" font-size="11" fill="#64748b">Segmentação (Chunks)</text>
+
+            <!-- Seta Preprocess -> Embedding Model -->
+            <line x1="354" y1="105" x2="438" y2="105" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+            <text x="392" y="124" text-anchor="middle" font-size="11.5" font-style="italic" fill="#475569">Chunks</text>
+
+            <!-- Badge 2: User Query -->
+            <circle cx="28" cy="215" r="14" fill="#c8102e"/>
+            <text x="28" y="220" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">2</text>
+            <text x="50" y="213" font-size="13.5" font-weight="800" fill="#c8102e">Consulta do Usuário, Recuperação</text>
+            <text x="50" y="230" font-size="13.5" font-weight="800" fill="#c8102e">e Geração de Resposta (Online)</text>
+
+            <!-- Ícone Usuário -->
+            <circle cx="72" cy="264" r="12" fill="#ffffff" stroke="#212121" stroke-width="2.2"/>
+            <path d="M54 304 L60 280 L84 280 L90 304 Z" fill="#ffffff" stroke="#212121" stroke-width="2.2"/>
+            <text x="72" y="324" text-anchor="middle" font-size="13" font-weight="800" fill="#212121">Usuário</text>
+
+            <!-- Seta Usuário -> Web App -->
+            <line x1="96" y1="286" x2="178" y2="286" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+            <!-- Chat Bot Web App -->
+            <rect x="186" y="246" width="136" height="78" rx="8" fill="#ffffff" stroke="#212121" stroke-width="2.2"/>
+            <line x1="186" y1="264" x2="322" y2="264" stroke="#212121" stroke-width="2"/>
+            <circle cx="308" cy="255" r="2.5" fill="#212121"/>
+            <circle cx="298" cy="255" r="2.5" fill="#212121"/>
+            <circle cx="288" cy="255" r="2.5" fill="#212121"/>
+            <text x="254" y="290" text-anchor="middle" font-size="13.5" font-weight="800" fill="#212121">Chat Bot</text>
+            <text x="254" y="308" text-anchor="middle" font-size="13.5" font-weight="800" fill="#212121">Web App</text>
+
+            <!-- Seta Web App -> Embedding Model -->
+            <line x1="322" y1="286" x2="438" y2="286" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+            <text x="378" y="306" text-anchor="middle" font-size="11.5" font-style="italic" fill="#475569">Pergunta</text>
+
+            <!-- Embedding Model (Coluna Alta) -->
+            <rect x="446" y="62" width="118" height="262" rx="10" fill="#0056b3"/>
+            <text x="505" y="186" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">Modelo de</text>
+            <text x="505" y="206" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">Embeddings</text>
+
+            <!-- Setas Embedding -> Vector DB -->
+            <line x1="564" y1="105" x2="672" y2="105" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+            <text x="618" y="88" text-anchor="middle" font-size="11.5" font-style="italic" fill="#475569">Embeddings dos</text>
+            <text x="618" y="101" text-anchor="middle" font-size="11.5" font-style="italic" fill="#475569">documentos</text>
+
+            <line x1="564" y1="286" x2="672" y2="286" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+            <text x="618" y="306" text-anchor="middle" font-size="11.5" font-style="italic" fill="#475569">Vetor da</text>
+            <text x="618" y="320" text-anchor="middle" font-size="11.5" font-style="italic" fill="#475569">consulta</text>
+
+            <!-- Vector DB (Cilindro Destacado) -->
+            <path d="M680 78 v232 c0 12 26 18 58 18 s58 -6 58 -18 v-232 Z" fill="#c8102e"/>
+            <ellipse cx="738" cy="78" rx="58" ry="16" fill="#e02443"/>
+            <text x="738" y="186" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">Banco de</text>
+            <text x="738" y="206" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">Vetores</text>
+            <text x="738" y="228" text-anchor="middle" font-size="11.5" font-weight="600" fill="rgba(255,255,255,0.85)">FAISS · Milvus · Chroma</text>
+
+            <!-- Seta Vector DB -> LLM -->
+            <line x1="796" y1="286" x2="914" y2="286" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+            <text x="855" y="305" text-anchor="middle" font-size="11" font-style="italic" fill="#475569">Prompt + consulta</text>
+            <text x="855" y="319" text-anchor="middle" font-size="11" font-style="italic" fill="#475569">+ contexto recuperado</text>
+
+            <!-- Box LLM -->
+            <rect x="922" y="226" width="136" height="98" rx="10" fill="#212121"/>
+            <text x="990" y="270" text-anchor="middle" font-size="16" font-weight="800" fill="#ffffff">LLM</text>
+            <text x="990" y="290" text-anchor="middle" font-size="11.5" fill="rgba(255,255,255,0.75)">Geração ancorada</text>
+
+            <!-- Linha de retorno: LLM -> Chat Bot Web App -->
+            <polyline points="1058,275 1074,275 1074,370 254,370 254,328" fill="none" stroke="#444" stroke-width="2" marker-end="url(#arrow-dark)"/>
+            <text x="660" y="392" text-anchor="middle" font-size="12.5" font-style="italic" font-weight="600" fill="#212121">Resposta gerada em texto (streaming)</text>
+          </svg>
+          <div class="fig-caption" style="text-align:center">Fig. 1 — Arquitetura do pipeline RAG: ingestão de documentos (offline) e consulta com recuperação (online). Adaptado de WOLFF, 2023.</div>
+        </div>
+        <div class="two-col mt12">
+          <div class="card card-blue" style="padding:14px 16px">
+            <h3>1. Ingestão (offline)</h3>
+            <p style="font-size:.84rem;color:var(--gray-2)">Documentos são segmentados em <em>chunks</em>, convertidos em vetores numéricos e indexados no banco vetorial.</p>
+          </div>
+          <div class="card card-red" style="padding:14px 16px">
+            <h3>2. Consulta (online)</h3>
+            <p style="font-size:.84rem;color:var(--gray-2)">A pergunta vira vetor, o banco recupera os trechos mais próximos e o LLM gera a resposta com base nesse contexto.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 7 — ÍNDICES VETORIAIS
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-7">
+      <div class="slide-content">
+        <div class="kicker">Cap. 2.3 — Indexação Vetorial</div>
+        <h2>Como os bancos buscam vetores?</h2>
+        <div class="three-col mt16">
+          <div class="card card-red">
+            <div class="icon-box">🌐</div>
+            <h3>HNSW</h3>
+            <div class="tag tag-red" style="margin-bottom:8px">Grafo hierárquico</div>
+            <p style="font-size:.86rem;color:var(--gray-2)">Organiza vetores em camadas de grafo: níveis superiores dão saltos longos e a base refina a vizinhança. <strong>Baixa latência</strong> ao custo de mais memória.</p>
+            <div style="margin-top:10px;font-size:.8rem;color:var(--gray)"><strong>Ajuste principal:</strong> quantidade de conexões por nó e profundidade de exploração na busca.</div>
+          </div>
+          <div class="card card-blue">
+            <div class="icon-box blue">⬡</div>
+            <h3>IVF</h3>
+            <div class="tag tag-blue" style="margin-bottom:8px">Partição espacial</div>
+            <p style="font-size:.86rem;color:var(--gray-2)">Agrupa vetores em regiões (clusters) com centroides. Na consulta, varre apenas os grupos mais próximos da pergunta.</p>
+            <div style="margin-top:10px;font-size:.8rem;color:var(--gray)"><strong>Ajuste principal:</strong> número de partições criadas e quantas são visitadas por consulta.</div>
+          </div>
+          <div class="card card-green">
+            <div class="icon-box green">📦</div>
+            <h3>Flat / Exato</h3>
+            <div class="tag tag-green" style="margin-bottom:8px">Busca linear</div>
+            <p style="font-size:.86rem;color:var(--gray-2)">Compara a consulta com <strong>100% dos vetores</strong> armazenados, sem nenhuma aproximação ou perda de precisão.</p>
+            <div style="margin-top:10px;font-size:.8rem;color:var(--gray)"><strong>Papel no estudo:</strong> usado como referência exata (<em>ground truth</em>) para medir acertos.</div>
+          </div>
+        </div>
+
+        <div class="card accent-blue mt16" style="padding:18px 22px">
+          <div class="tag tag-blue" style="margin-bottom:8px">Como medimos a proximidade?</div>
+          <h3>Inner Product (Produto Interno) com Vetores Normalizados</h3>
+          <div class="three-col mt12" style="gap:14px">
+            <div style="background:rgba(255,255,255,.78);border-radius:var(--r-sm);padding:12px 14px">
+              <strong style="color:var(--blue);font-size:.84rem">1. Direção = Significado</strong>
+              <p style="font-size:.82rem;color:var(--gray-2);margin-top:4px">Textos parecidos apontam para a mesma direção no espaço vetorial.</p>
+            </div>
+            <div style="background:rgba(255,255,255,.78);border-radius:var(--r-sm);padding:12px 14px">
+              <strong style="color:var(--blue);font-size:.84rem">2. Normalização L2</strong>
+              <p style="font-size:.82rem;color:var(--gray-2);margin-top:4px">Ajustamos todos os vetores para o mesmo tamanho (comprimento = 1) para comparar apenas a direção.</p>
+            </div>
+            <div style="background:rgba(255,255,255,.78);border-radius:var(--r-sm);padding:12px 14px">
+              <strong style="color:var(--blue);font-size:.84rem">3. Produto Interno Rápido</strong>
+              <p style="font-size:.82rem;color:var(--gray-2);margin-top:4px">Com tamanho = 1, o produto interno equivale à <strong>Similaridade de Cosseno</strong>, calculada muito rápido na CPU.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 8 — OS TRÊS CANDIDATOS
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-8">
+      <div class="slide-content">
+        <div class="kicker">Cap. 2.4 — Ferramentas Avaliadas</div>
+        <h2>Os três candidatos</h2>
+        <div class="three-col mt16">
+          <div class="card card-red">
+            <div class="tag tag-red" style="margin-bottom:12px">FAISS — Meta AI</div>
+            <h3>Desempenho máximo</h3>
+            <ul class="clean" style="margin-top:8px">
+              <li>Biblioteca sem servidor e sem camada de persistência nativa.</li>
+              <li>Opera diretamente em memória de forma determinística.</li>
+              <li>Suporta HNSW, IVF, PQ e busca exata.</li>
+              <li><strong>Papel duplo:</strong> candidato do benchmark e oráculo de <em>ground truth</em>.</li>
+            </ul>
+            <div class="tag tag-gray" style="margin-top:14px">faiss-cpu ≥ 1.9.0</div>
+          </div>
+          <div class="card card-blue">
+            <div class="tag tag-blue" style="margin-bottom:12px">Milvus Lite — LF AI</div>
+            <h3>Orientado à produção</h3>
+            <ul class="clean" style="margin-top:8px">
+              <li>Versão local embarcada do banco vetorial Milvus.</li>
+              <li>Oferece persistência em disco e gerenciamento de coleções.</li>
+              <li>Expõe controle explícito de parâmetros do grafo HNSW na API.</li>
+            </ul>
+            <div class="tag tag-gray" style="margin-top:14px">pymilvus 2.5.8</div>
+          </div>
+          <div class="card card-green">
+            <div class="tag tag-green" style="margin-bottom:12px">Chroma — Cognition</div>
+            <h3>Experiência do desenvolvedor</h3>
+            <ul class="clean" style="margin-top:8px">
+              <li>Interface minimalista e integração direta com LangChain e LlamaIndex.</li>
+              <li>Configura o índice HNSW automaticamente, ocultando parâmetros complexos.</li>
+              <li>Foco em prototipagem rápida; em S3 (500k vetores) atingiu <strong>timeout</strong>.</li>
+            </ul>
+            <div class="tag tag-gray" style="margin-top:14px">chromadb 0.6.3</div>
+          </div>
+        </div>
+        <div class="card accent-blue mt16">
+          <p style="font-size:.88rem">A seleção cobre três posicionamentos distintos: <strong>biblioteca de alto desempenho em memória</strong> (FAISS), <strong>banco estruturado em modo local</strong> (Milvus Lite) e <strong>banco focado em produtividade</strong> (Chroma).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 9 — METODOLOGIA PIPELINE
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-9">
+      <div class="slide-content">
+        <div class="kicker">Cap. 3 — Metodologia</div>
+        <h2>O pipeline experimental</h2>
+
+        <div class="card card-blue mt12">
+          <h3>Componentes fixos (controle experimental)</h3>
+          <div class="two-col" style="margin-top:8px;gap:14px">
+            <ul class="clean">
+              <li><strong>Embeddings (<span class="code">all-MiniLM-L6-v2</span>):</strong> modelo leve (33M parâmetros) que converte textos em vetores de 384 dimensões.</li>
+              <li><strong>Métrica (Inner Product + L2-norm):</strong> garante equivalência à similaridade de cosseno com alta velocidade.</li>
+            </ul>
+            <ul class="clean">
+              <li><strong>Ambiente:</strong> Python 3.12 · Google Colab CPU (~12,67 GB RAM) · bibliotecas nativas sem middleware.</li>
+              <li><strong>Protocolo de execução:</strong> 200 consultas idênticas por cenário · 10 repetições (+ 1 aquecimento descartado).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pipeline-h">
+          <div class="pipe-phase p1">
+            <div class="tag tag-blue">Fase 1 — Indexação</div>
+            <div class="pipe-step">Corpus (S1, S2 ou S3)</div>
+            <div class="pipe-step">Embeddings 384d + L2-norm</div>
+            <div class="pipe-step">Inserção em FAISS / Milvus / Chroma</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-phase p2">
+            <div class="tag tag-red">Fase 2 — Busca</div>
+            <div class="pipe-step">200 queries fixas por cenário</div>
+            <div class="pipe-step">Busca Top-k (Inner Product)</div>
+            <div class="pipe-step">10 repetições + 1 warm-up</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-phase p3">
+            <div class="tag tag-green">Fase 3 — Avaliação</div>
+            <div class="pipe-step">Oráculo: FAISS Busca Exata</div>
+            <div class="pipe-step">Interseção vs. Ground Truth</div>
+            <div class="pipe-step">Recall@k · p50/p99 · QPS · RAM/Disco</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 10 — CENÁRIOS DE ESCALA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-10">
+      <div class="slide-content">
+        <div class="kicker">Cap. 3.3 — Cenários de Escala</div>
+        <h2>Cenários de Escala (S1, S2 e S3)</h2>
+        <div class="three-col mt16">
+          <div class="card card-red" style="text-align:center">
+            <div class="big-num red">10k</div>
+            <div class="num-label" style="margin-bottom:10px">vetores — S1</div>
+            <div class="tag tag-red" style="margin-bottom:10px;justify-content:center">Corpus real</div>
+            <p style="font-size:.84rem;color:var(--gray-2)">Embeddings reais do corpus de notícias <strong>AG News</strong>. Simula prototipagem e prova de conceito.</p>
+          </div>
+          <div class="card card-blue" style="text-align:center">
+            <div class="big-num blue">100k</div>
+            <div class="num-label" style="margin-bottom:10px">vetores — S2</div>
+            <div class="tag tag-blue" style="margin-bottom:10px;justify-content:center">Sintético</div>
+            <p style="font-size:.84rem;color:var(--gray-2)">Vetores gaussianos normalizados. Simula produção média em departamento ou PME.</p>
+          </div>
+          <div class="card" style="text-align:center;border-top:3px solid var(--gray)">
+            <div class="big-num fw-900">500k</div>
+            <div class="num-label" style="margin-bottom:10px">vetores — S3</div>
+            <div class="tag tag-gray" style="margin-bottom:10px;justify-content:center">Sintético</div>
+            <p style="font-size:.84rem;color:var(--gray-2)">Vetores gaussianos normalizados. Simula carga empresarial e teste de limites operacionais.</p>
+          </div>
+        </div>
+        <div class="two-col mt16" style="align-items:center">
+          <div>
+            <img src="../assets/fig_3_2_cenarios.mermaid.rendered.png" alt="Progressão dos três cenários" class="result-img" style="max-height:230px;object-fit:contain;margin:0 auto" />
+            <div class="fig-caption" style="text-align:center">Fig. 3.2 — Progressão S1 → S2 → S3.</div>
+          </div>
+          <div class="card accent-blue">
+            <h3>Por que dados sintéticos em S2 e S3?</h3>
+            <ul class="clean" style="margin-top:8px">
+              <li><strong>Reprodutibilidade:</strong> replicação exata da distribuição entre execuções.</li>
+              <li><strong>Escalabilidade:</strong> geração de até 500k vetores sem gargalo de download ou processamento.</li>
+              <li><strong>Isolamento:</strong> elimina viés de redundância textual entre documentos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 11 — MÉTRICAS: RECALL@K
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-11">
+      <div class="slide-content" style="max-width:1260px">
+        <div class="kicker">Cap. 3.6 — Métricas de Avaliação (1/2)</div>
+        <h2>Como medimos a qualidade: Recall@k</h2>
+        <div class="mt16" style="display:grid;grid-template-columns:0.78fr 1.22fr;gap:22px;align-items:start">
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-red">
+              <div class="tag tag-red" style="margin-bottom:8px">Definição adotada (Taxa de Acerto)</div>
+              <p style="font-size:.9rem;margin-bottom:10px">Para cada consulta, comparamos os <strong>k</strong> itens retornados pelo banco com os <strong>k</strong> vizinhos exatos do oráculo (<em>ground truth</em>).</p>
+              <p style="font-size:.9rem;margin-bottom:10px">A consulta conta como <strong>acerto</strong> quando há pelo menos um item em comum (interseção não vazia).</p>
+              <div style="background:rgba(33,33,33,.04);border-radius:var(--r-sm);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:.82rem">
+                Recall@k = (consultas com ≥1 acerto) / 200
+              </div>
+            </div>
+            <div class="card accent-blue">
+              <h3>Valores avaliados: k ∈ {1, 5, 10}</h3>
+              <ul class="clean" style="margin-top:6px">
+                <li><strong>k = 1:</strong> exige que o primeiro resultado seja exatamente o vizinho mais próximo real.</li>
+                <li><strong>k = 5 e k = 10:</strong> avaliam se a vizinhança relevante foi preservada no topo da busca.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="chart-card" style="padding:16px">
+            <div class="chart-title">Exemplo ilustrativo (k = 5, N = 5 consultas)</div>
+            <svg viewBox="0 0 760 325" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Segoe UI,sans-serif" style="width:100%;height:auto">
+              <rect width="760" height="325" fill="#ffffff"/>
+              <rect x="10" y="8" width="740" height="32" rx="6" fill="#212121"/>
+              <text x="24" y="29" font-size="12" font-weight="bold" fill="#ffffff">Consulta</text>
+              <text x="98" y="29" font-size="12" font-weight="bold" fill="#ffffff">Ground truth (top-5)</text>
+              <text x="295" y="29" font-size="12" font-weight="bold" fill="#ffffff">Recuperados@5</text>
+              <text x="495" y="29" font-size="12" font-weight="bold" fill="#ffffff">Interseção</text>
+              <text x="645" y="29" font-size="12" font-weight="bold" fill="#ffffff">Acerto</text>
+
+              <rect x="10" y="42" width="740" height="38" fill="#f8fafc" stroke="#e2e8f0"/>
+              <text x="24" y="66" font-size="12" font-weight="bold" fill="#1f2937">q1</text>
+              <text x="98" y="66" font-size="12" fill="#0056b3">{v1, v3, v5, v7, v9}</text>
+              <text x="295" y="66" font-size="12" fill="#c8102e">{v1, v3, v6, v7, v11}</text>
+              <text x="495" y="66" font-size="12" fill="#1f8a4c">{v1, v3, v7}</text>
+              <rect x="635" y="49" width="96" height="24" rx="5" fill="#d1fae5" stroke="#1f8a4c"/>
+              <text x="683" y="66" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2937">1 (acerto)</text>
+
+              <rect x="10" y="80" width="740" height="38" fill="#ffffff" stroke="#e2e8f0"/>
+              <text x="24" y="104" font-size="12" font-weight="bold" fill="#1f2937">q2</text>
+              <text x="98" y="104" font-size="12" fill="#0056b3">{v2, v4, v8, v12, v15}</text>
+              <text x="295" y="104" font-size="12" fill="#c8102e">{v4, v8, v9, v12, v20}</text>
+              <text x="495" y="104" font-size="12" fill="#1f8a4c">{v4, v8, v12}</text>
+              <rect x="635" y="87" width="96" height="24" rx="5" fill="#d1fae5" stroke="#1f8a4c"/>
+              <text x="683" y="104" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2937">1 (acerto)</text>
+
+              <rect x="10" y="118" width="740" height="38" fill="#f8fafc" stroke="#e2e8f0"/>
+              <text x="24" y="142" font-size="12" font-weight="bold" fill="#1f2937">q3</text>
+              <text x="98" y="142" font-size="12" fill="#0056b3">{v10, v14, v16, v18, v21}</text>
+              <text x="295" y="142" font-size="12" fill="#c8102e">{v2, v3, v22, v23, v24}</text>
+              <text x="495" y="142" font-size="12" fill="#757575">vazia</text>
+              <rect x="635" y="125" width="96" height="24" rx="5" fill="#fee2e2" stroke="#c8102e"/>
+              <text x="683" y="142" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2937">0 (falha)</text>
+
+              <rect x="10" y="156" width="740" height="38" fill="#ffffff" stroke="#e2e8f0"/>
+              <text x="24" y="180" font-size="12" font-weight="bold" fill="#1f2937">q4</text>
+              <text x="98" y="180" font-size="12" fill="#0056b3">{v1, v2, v3, v4, v5}</text>
+              <text x="295" y="180" font-size="12" fill="#c8102e">{v5, v9, v10, v11, v12}</text>
+              <text x="495" y="180" font-size="12" fill="#1f8a4c">{v5}</text>
+              <rect x="635" y="163" width="96" height="24" rx="5" fill="#d1fae5" stroke="#1f8a4c"/>
+              <text x="683" y="180" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2937">1 (acerto)</text>
+
+              <rect x="10" y="194" width="740" height="38" fill="#f8fafc" stroke="#e2e8f0"/>
+              <text x="24" y="218" font-size="12" font-weight="bold" fill="#1f2937">q5</text>
+              <text x="98" y="218" font-size="12" fill="#0056b3">{v6, v7, v8, v9, v10}</text>
+              <text x="295" y="218" font-size="12" fill="#c8102e">{v6, v7, v8, v9, v10}</text>
+              <text x="495" y="218" font-size="12" fill="#1f8a4c">os 5 itens</text>
+              <rect x="635" y="201" width="96" height="24" rx="5" fill="#d1fae5" stroke="#1f8a4c"/>
+              <text x="683" y="218" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2937">1 (acerto)</text>
+
+              <rect x="10" y="246" width="740" height="58" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+              <text x="380" y="280" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f8a4c">Recall@5 (taxa de acerto) = (1 + 1 + 0 + 1 + 1) / 5 = 4/5 = 0,80</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 12 — MÉTRICAS OPERACIONAIS & ESTATÍSTICA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-12">
+      <div class="slide-content">
+        <div class="kicker">Cap. 3.6 / 3.7 — Métricas e Rigor Estatístico (2/2)</div>
+        <h2>Desempenho operacional &amp; validação estatística</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="card card-blue">
+            <h3>Métricas operacionais coletadas</h3>
+            <ul class="clean" style="margin-top:10px">
+              <li><strong>Tempo de indexação (s):</strong> quanto tempo o banco leva para ingerir e construir o índice.</li>
+              <li><strong>Latência p50 e p99 (ms):</strong> tempo típico (mediana) e pior caso (99%) por consulta.</li>
+              <li><strong>Throughput (QPS):</strong> quantas consultas por segundo o banco processa.</li>
+              <li><strong>Consumo de RAM (MB):</strong> memória adicional alocada pelo processo durante a indexação.</li>
+              <li><strong>Tamanho em disco (MB):</strong> espaço ocupado pelos arquivos persistidos.</li>
+            </ul>
+          </div>
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-green">
+              <h3>Por que 10 repetições?</h3>
+              <p style="font-size:.86rem;color:var(--gray-2)">Medir apenas uma vez sofre ruído do sistema operacional e cache. Repetir <strong>10 vezes</strong> (após 1 aquecimento descartado) captura a estabilidade real de cada banco.</p>
+            </div>
+            <div class="card card-red">
+              <h3>Intervalo de Confiança (IC 95%)</h3>
+              <p style="font-size:.86rem;color:var(--gray-2)">Calculado via distribuição <em>t</em> de Student. Indica a faixa onde está a latência média real com 95% de confiança — faixas estreitas mostram desempenho previsível.</p>
+            </div>
+            <div class="card accent-blue">
+              <h3>Teste de Wilcoxon (p &lt; 0,05)</h3>
+              <p style="font-size:.86rem;color:var(--gray-2)">Compara os bancos par a par sem assumir distribuição normal (ideal para latências). Se <strong>p &lt; 0,05</strong>, a diferença observada é real, e não acaso.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 13 — RESULTADOS S1
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-13">
+      <div class="slide-content">
+        <div class="kicker">Cap. 4.2 — Resultados</div>
+        <h2>S1 — 10 mil vetores (AG News, embeddings reais)</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="flex-col" style="gap:14px">
+            <div class="chart-card">
+              <div class="chart-title">Latência p50 (ms) <span class="chart-sub">menor é melhor</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:1.5%"></div></div><div class="bar-val td-best">0,0581 ms</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:79%"></div></div><div class="bar-val">6,2066 ms</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:100%"></div></div><div class="bar-val">7,8377 ms</div></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Tempo de Indexação (s) <span class="chart-sub">menor é melhor</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:3.6%"></div></div><div class="bar-val td-best">1,41 s</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:20%"></div></div><div class="bar-val">7,94 s</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:100%"></div></div><div class="bar-val td-warn">39,50 s</div></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Recall@10 <span class="chart-sub">1,000 = 100% acerto</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:100%"></div></div><div class="bar-val td-best">1,000</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:100%"></div></div><div class="bar-val td-best">1,000</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:100%"></div></div><div class="bar-val td-best">1,000</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-col" style="gap:14px">
+            <div class="three-col" style="gap:10px">
+              <div class="card card-red" style="text-align:center;padding:14px 10px">
+                <div class="big-num red" style="font-size:1.5rem">17.486</div>
+                <div class="num-label">QPS FAISS</div>
+              </div>
+              <div class="card card-blue" style="text-align:center;padding:14px 10px">
+                <div class="big-num blue" style="font-size:1.5rem">156,4</div>
+                <div class="num-label">QPS Milvus</div>
+              </div>
+              <div class="card card-green" style="text-align:center;padding:14px 10px">
+                <div class="big-num green" style="font-size:1.5rem">105,8</div>
+                <div class="num-label">QPS Chroma</div>
+              </div>
+            </div>
+            <div class="card accent-red">
+              <p style="font-size:.9rem"><strong>FAISS é ~2 ordens de grandeza mais rápido</strong> que as alternativas em S1, operando em memória com apenas 0,3 MB adicionais de RAM.</p>
+            </div>
+            <div class="card">
+              <p style="font-size:.88rem;color:var(--gray-2)">Os três bancos atingem <strong>Recall@10 = 1,000</strong> neste volume pequeno. A diferença prática está na velocidade de busca e no tempo de ingestão (Chroma leva 39,5 s contra 1,41 s do FAISS).</p>
+            </div>
+            <div class="card accent-blue">
+              <p style="font-size:.86rem"><strong>Diferença estatística:</strong> o teste de Wilcoxon confirma que todas as diferenças de latência entre pares são significativas (p ≤ 0,0195).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 14 — RESULTADOS S2
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-14">
+      <div class="slide-content">
+        <div class="kicker">Cap. 4.3 — Resultados</div>
+        <h2>S2 — 100 mil vetores (sintéticos normalizados)</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="flex-col" style="gap:14px">
+            <div class="chart-card">
+              <div class="chart-title">Recall@10 <span class="chart-sub">maior é melhor</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:39.5%"></div></div><div class="bar-val td-bad">0,395</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:100%"></div></div><div class="bar-val td-best">1,000</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:68.5%"></div></div><div class="bar-val td-warn">0,685</div></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Latência p50 (ms) <span class="chart-sub">menor é melhor</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:2%"></div></div><div class="bar-val td-best">0,4799 ms</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:100%"></div></div><div class="bar-val td-warn">31,79 ms</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:37.1%"></div></div><div class="bar-val">11,80 ms</div></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Indexação (s) &amp; RAM (MB)</div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:22.9%"></div></div><div class="bar-val">179,9 s · 147 MB</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:32.1%"></div></div><div class="bar-val">251,5 s · 531 MB</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:100%"></div></div><div class="bar-val td-bad">784,7 s · 435 MB</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-col" style="gap:14px">
+            <div class="card accent-red">
+              <p style="font-size:.9rem">O <strong>trade-off velocidade × recall</strong> surge claramente em S2: FAISS lidera em velocidade (2.139 QPS), mas seu Recall@10 cai para <strong>0,395</strong>.</p>
+            </div>
+            <div class="card card-blue">
+              <p style="font-size:.88rem"><strong>Milvus preserva Recall@10 = 1,000</strong>, porém sua latência sobe para 31,79 ms (28,1 QPS) e consome 531,4 MB de RAM.</p>
+            </div>
+            <div class="card card-green">
+              <p style="font-size:.88rem"><strong>Chroma ocupa posição intermediária:</strong> Recall@10 = 0,685 e p50 = 11,80 ms (75,5 QPS), mas leva ~13 minutos (784,7 s) apenas para indexar.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 15 — RESULTADOS S3
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-15">
+      <div class="slide-content">
+        <div class="kicker">Cap. 4.4 — Resultados</div>
+        <h2>S3 — 500 mil vetores — limites operacionais</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="flex-col" style="gap:14px">
+            <div class="chart-card">
+              <div class="chart-title">Recall@10 <span class="chart-sub">maior é melhor</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS HNSW</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:13.5%"></div></div><div class="bar-val td-bad">0,135</div></div>
+                <div class="bar-row"><div class="bar-label">FAISS IVF707</div><div class="bar-track"><div class="bar-fill fill-ivf" style="width:10%"></div></div><div class="bar-val td-bad">0,100</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus HNSW</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:100%"></div></div><div class="bar-val td-best">1,000</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-timeout" style="width:100%"></div></div><div class="bar-val td-warn">timeout</div></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Latência p50 (ms) <span class="chart-sub">menor é melhor</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS IVF707</div><div class="bar-track"><div class="bar-fill fill-ivf" style="width:1%"></div></div><div class="bar-val td-best">0,1815 ms</div></div>
+                <div class="bar-row"><div class="bar-label">FAISS HNSW</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:2%"></div></div><div class="bar-val td-best">0,8006 ms</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus HNSW</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:100%"></div></div><div class="bar-val td-bad">86,79 ms</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-timeout" style="width:100%"></div></div><div class="bar-val td-warn">timeout</div></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Consumo de RAM na Indexação (MB)</div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS IVF707</div><div class="bar-track"><div class="bar-fill fill-ivf" style="width:30%"></div></div><div class="bar-val td-best">701,5 MB</div></div>
+                <div class="bar-row"><div class="bar-label">FAISS HNSW</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:36.7%"></div></div><div class="bar-val">857,0 MB</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus HNSW</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:100%"></div></div><div class="bar-val td-bad">2.335,6 MB</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma</div><div class="bar-track"><div class="bar-fill fill-timeout" style="width:38.2%"></div></div><div class="bar-val td-warn">892,9 MB*</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-warn" style="background:rgba(217,119,6,.07)">
+              <h3 style="color:var(--warning)">⚠ Chroma — Timeout de inserção</h3>
+              <p style="font-size:.86rem;color:var(--gray-2)">Não concluiu a inserção dos 500k vetores no limite operacional (1.811 s acumulados). A ausência de latência e Recall@k é parte do resultado experimental.</p>
+            </div>
+            <div class="card accent-red">
+              <p style="font-size:.88rem"><strong>FAISS IVF707</strong> indexou em apenas <strong>32,96 s</strong> e entregou <strong>5.467 QPS</strong> (0,18 ms), mas com Recall@10 = 0,100 usando parâmetros padrão.</p>
+            </div>
+            <div class="card card-blue">
+              <p style="font-size:.88rem"><strong>Milvus HNSW</strong> manteve Recall@10 = 1,000, exigindo <strong>2,34 GB de RAM</strong> e entregando 11,6 QPS (86,8 ms).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 16 — ANÁLISE ESTATÍSTICA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-16">
+      <div class="slide-content">
+        <div class="kicker">Cap. 4.5 — Análise Estatística</div>
+        <h2>Incerteza (IC 95%) e Significância (Wilcoxon)</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="flex-col" style="gap:14px">
+            <div class="chart-card">
+              <div class="chart-title">Estabilidade da Latência (CV %) <span class="chart-sub">menor = mais previsível</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">FAISS S1</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:6.1%"></div></div><div class="bar-val td-best">4,2%</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus S3</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:6.3%"></div></div><div class="bar-val td-best">4,4%</div></div>
+                <div class="bar-row"><div class="bar-label">FAISS S2</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:11.5%"></div></div><div class="bar-val td-best">7,9%</div></div>
+                <div class="bar-row"><div class="bar-label">Chroma S2</div><div class="bar-track"><div class="bar-fill fill-chroma" style="width:35.6%"></div></div><div class="bar-val td-warn">24,6%</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus S2</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:40.5%"></div></div><div class="bar-val td-warn">28,0%</div></div>
+                <div class="bar-row"><div class="bar-label">Milvus S1</div><div class="bar-track"><div class="bar-fill fill-milvus" style="width:56.4%"></div></div><div class="bar-val td-warn">38,9%</div></div>
+                <div class="bar-row"><div class="bar-label">FAISS S3</div><div class="bar-track"><div class="bar-fill fill-faiss" style="width:100%"></div></div><div class="bar-val td-bad">68,9%</div></div>
+              </div>
+            </div>
+            <div class="card accent-red">
+              <h3>O que o IC 95% revela?</h3>
+              <p style="font-size:.86rem;color:var(--gray-2)">No S3, o FAISS HNSW-32 tem média de 1,095 ms com IC 95% amplo (<strong>0,555 a 1,635 ms</strong>) e CV de 68,9% — mostrando oscilação entre execuções, enquanto o Milvus S3 é lento (86,6 ms), porém muito estável (CV = 4,4%).</p>
+            </div>
+          </div>
+
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-blue">
+              <h3>Resultado do Teste de Wilcoxon</h3>
+              <ul class="clean" style="margin-top:8px">
+                <li><strong>S1 e S2:</strong> todas as comparações entre pares tiveram <strong>p ≤ 0,0195</strong> — diferenças reais de latência.</li>
+                <li><strong>S3:</strong> FAISS × Milvus também significativo (<strong>p = 0,002</strong>); Chroma não testado por timeout.</li>
+                <li><strong>Conclusão prática:</strong> a diferença de velocidade entre os bancos é estatisticamente comprovada, não ruído de medição.</li>
+              </ul>
+            </div>
+            <div class="card accent-blue">
+              <h3>Leitura prática dos intervalos</h3>
+              <ul class="clean" style="margin-top:8px">
+                <li><strong>IC 95% estreito</strong> (ex.: FAISS S1: 0,0555–0,0589 ms) indica alta previsibilidade de resposta.</li>
+                <li><strong>CV elevado</strong> no FAISS S3 (68,9%) alerta para oscilações em escala maior, exigindo análise além da mediana.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 17 — TRADE-OFFS
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-17">
+      <div class="slide-content">
+        <div class="kicker">Cap. 4.6 — Discussão</div>
+        <h2>Discussão dos trade-offs</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div>
+            <img src="../results/fig5_radar.png" alt="Perfil multidimensional normalizado S1 e S2" class="result-img" style="margin-bottom:10px" />
+            <div class="fig-caption">Fig. 4.5 — Perfil multidimensional normalizado (S1 e S2). Visualização exploratória — não substitui os valores absolutos.</div>
+          </div>
+          <div class="flex-col" style="gap:12px">
+            <div class="card card-red">
+              <div class="tag tag-red" style="margin-bottom:8px">FAISS</div>
+              <ul class="clean">
+                <li>Menor latência e maior throughput em todos os cenários.</li>
+                <li>Recall@10 cai para <strong>0,395 (S2)</strong> e <strong>0,135 (S3)</strong> com parâmetros padrão.</li>
+                <li>Indicado quando velocidade é prioridade ou há ajuste fino de parâmetros.</li>
+              </ul>
+            </div>
+            <div class="card card-blue">
+              <div class="tag tag-blue" style="margin-bottom:8px">Milvus Lite</div>
+              <ul class="clean">
+                <li>Mantém <strong>Recall@10 = 1,000</strong> em S1, S2 e S3.</li>
+                <li>Maior latência (86,8 ms em S3) e maior consumo de RAM (2,34 GB em S3).</li>
+                <li>Indicado quando qualidade de recuperação é crítica e há memória disponível.</li>
+              </ul>
+            </div>
+            <div class="card card-green">
+              <div class="tag tag-green" style="margin-bottom:8px">Chroma</div>
+              <ul class="clean">
+                <li>Equilíbrio intermediário em S1 e S2 (Recall@10 = 0,685 e 11,8 ms em S2).</li>
+                <li>Indexação mais lenta entre os bancos concluídos.</li>
+                <li>Não concluiu a ingestão de 500k vetores (S3), exigindo cautela em larga escala.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 18 — RECOMENDAÇÕES
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-18">
+      <div class="slide-content">
+        <div class="kicker">Cap. 4.8 — Recomendações práticas</div>
+        <h2>Qual banco escolher?</h2>
+        <p style="color:var(--gray-2);font-size:.88rem;margin-bottom:14px">Recomendações condicionais — não uma classificação universal. Válidas apenas para os volumes, índices e ambiente testados.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Volume / Requisito</th>
+                <th>Latência crítica</th>
+                <th>Maior Recall@10</th>
+                <th>Facilidade operacional</th>
+                <th>Menor uso de recursos</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Prototipagem &lt; 50k</strong></td>
+                <td class="td-best">FAISS HNSW-32</td>
+                <td>Milvus ou Chroma (ambos = 1,000 em S1)</td>
+                <td>Chroma (HNSW automático)</td>
+                <td class="td-best">FAISS (mínimo delta RAM)</td>
+              </tr>
+              <tr>
+                <td><strong>Produção leve 50k–200k</strong></td>
+                <td class="td-best">FAISS HNSW-32</td>
+                <td class="td-best">Milvus HNSW-16 (= 1,000 em S2)</td>
+                <td>Chroma (se ingestão compatível)</td>
+                <td class="td-best">FAISS</td>
+              </tr>
+              <tr>
+                <td><strong>Produção intensa &gt; 200k</strong></td>
+                <td class="td-best">FAISS IVF707 ou HNSW-32</td>
+                <td class="td-best">Milvus HNSW-16 (= 1,000 em S3)</td>
+                <td>Milvus Lite (ressalva: não distribuído)</td>
+                <td>FAISS IVF707 em tempo/latência</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="three-col mt16">
+          <div class="card card-red" style="text-align:center">
+            <div class="big-num red" style="font-size:1.6rem">FAISS</div>
+            <div class="num-label">velocidade máxima</div>
+            <div class="tag tag-warn" style="margin:8px auto 0;justify-content:center">recall degradado em escala</div>
+          </div>
+          <div class="card card-blue" style="text-align:center">
+            <div class="big-num blue" style="font-size:1.6rem">Milvus</div>
+            <div class="num-label">maior recall hit-based</div>
+            <div class="tag tag-warn" style="margin:8px auto 0;justify-content:center">alto custo de RAM em S3</div>
+          </div>
+          <div class="card card-green" style="text-align:center">
+            <div class="big-num green" style="font-size:1.6rem">Chroma</div>
+            <div class="num-label">facilidade operacional</div>
+            <div class="tag" style="margin:8px auto 0;justify-content:center;background:rgba(180,35,24,.1);color:var(--red)">não completou S3</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 19 — CONCLUSÃO
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide" id="slide-19">
+      <div class="slide-content">
+        <div class="kicker">Cap. 5 — Conclusão</div>
+        <h2>Resposta à questão norteadora</h2>
+        <div class="two-col mt16" style="align-items:start">
+          <div class="flex-col" style="gap:14px">
+            <div class="card accent-red">
+              <div class="tag tag-red" style="margin-bottom:8px">Questão norteadora</div>
+              <p style="font-size:.9rem;font-weight:600;line-height:1.6">"Qual solução apresenta o melhor equilíbrio entre desempenho, escalabilidade e taxa de acerto?"</p>
+            </div>
+            <div class="card card-blue">
+              <h3>Resposta</h3>
+              <p style="font-size:.88rem;margin-bottom:10px"><strong>Não há um vencedor universal.</strong> Cada solução equilibra velocidade, qualidade de recuperação e recursos de forma distinta:</p>
+              <ul class="clean">
+                <li><strong>FAISS:</strong> lidera em latência (0,06 ms a 0,80 ms) e throughput (até 17,5 mil QPS), mas perde Recall@10 em escala (0,395 em S2; 0,135 em S3).</li>
+                <li><strong>Milvus Lite:</strong> preserva <strong>Recall@10 = 1,000</strong> em todos os cenários, ao custo de maior latência (86,8 ms) e 2,34 GB de RAM em S3.</li>
+                <li><strong>Chroma:</strong> entrega boa praticidade e equilíbrio até 100k vetores (Recall@10 = 0,685), porém atingiu timeout na ingestão de 500k vetores.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flex-col" style="gap:14px">
+            <div class="card card-green">
+              <h3>Objetivos atendidos</h3>
+              <ul class="clean" style="margin-top:8px">
+                <li>Arquiteturas e algoritmos HNSW, IVF e Flat caracterizados.</li>
+                <li>Pipeline padronizado implementado com bibliotecas nativas.</li>
+                <li>3 cenários de escala (10k, 100k, 500k) executados e medidos.</li>
+                <li>Rigor estatístico aplicado (IC 95% e teste de Wilcoxon).</li>
+                <li>Código e dados disponibilizados publicamente (licença MIT).</li>
+              </ul>
+            </div>
+            <div class="card accent-blue">
+              <h3>Próximos passos</h3>
+              <p style="font-size:.86rem;color:var(--gray-2)">Ajuste sistemático de parâmetros (<span class="code">efSearch</span>/<span class="code">nprobe</span>), testes em GPU, busca híbrida (BM25 + vetores) e avaliação ponta a ponta com LLM e RAGAS.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         SLIDE 20 — ENCERRAMENTO
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <section class="slide slide-closing" id="slide-20">
+      <div class="slide-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px">
+        <div class="kicker" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2)">Trabalho de Conclusão de Curso · FATEC Mogi das Cruzes · 2026</div>
+        <h2 style="font-size:clamp(1.8rem,4vw,3.4rem);max-width:700px">Obrigado!</h2>
+        <p class="lead" style="color:rgba(255,255,255,.65);max-width:52ch">Breno Alves de Oliveira<br><span style="font-size:.85rem">Análise e Desenvolvimento de Sistemas</span></p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:8px">
+          <div class="cover-badge">🔗 github.com/BrenooOliveira/AulasFatec</div>
+          <div class="cover-badge">📄 Licença MIT</div>
+          <div class="cover-badge">🧪 Código reprodutível</div>
+        </div>
+
+        <div style="margin-top:24px;padding:22px 28px;border:1px solid rgba(255,255,255,.18);border-radius:var(--r-lg);background:rgba(255,255,255,.07);max-width:620px;width:100%">
+          <div style="font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px">Síntese final</div>
+          <p style="font-size:.93rem;color:rgba(255,255,255,.82);line-height:1.65;font-weight:500">Não existe uma solução dominante. <strong style="color:var(--white)">FAISS</strong> para velocidade, <strong style="color:var(--white)">Milvus</strong> para qualidade de recuperação em escala, <strong style="color:var(--white)">Chroma</strong> para facilidade operacional em volumes menores.</p>
+        </div>
+
+        <p style="color:rgba(255,255,255,.35);font-size:.82rem;margin-top:12px">Orientadora: Prof. Esp. Mariangela Ferreira Fuentes Molina</p>
+      </div>
+    </section>
+
+  </main><!-- /stage -->
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer class="deck-footer">
+    <button class="nav-btn" id="btnPrev" onclick="navigate(-1)">← Anterior</button>
+    <div class="progress-bar"><span id="progressFill" style="width:5%"></span></div>
+    <span class="footer-label" id="footerLabel">Slide 1 de 20</span>
+    <button class="nav-btn primary" id="btnNext" onclick="navigate(1)">Próximo →</button>
+  </footer>
+
+</div><!-- /deck-shell -->
+
+<script>
+(function(){
+  const TOTAL = 20;
+  let current = 1;
+
+  function goTo(n){
+    if(n < 1 || n > TOTAL) return;
+    document.getElementById('slide-'+current).classList.remove('active');
+    current = n;
+    const next = document.getElementById('slide-'+current);
+    next.classList.add('active');
+    next.scrollTop = 0;
+
+    document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+    document.getElementById('footerLabel').textContent = 'Slide ' + current + ' de ' + TOTAL;
+
+    var pct = (current / TOTAL * 100).toFixed(1);
+    document.getElementById('progressFill').style.width = pct + '%';
+
+    document.getElementById('btnPrev').disabled = current === 1;
+    document.getElementById('btnPrev').style.opacity = current === 1 ? '.35' : '1';
+    document.getElementById('btnNext').disabled = current === TOTAL;
+    document.getElementById('btnNext').style.opacity = current === TOTAL ? '.35' : '1';
+  }
+
+  window.navigate = function(dir){ goTo(current + dir); };
+
+  document.addEventListener('keydown', function(e){
+    switch(e.key){
+      case 'ArrowRight': case 'ArrowDown': case 'PageDown': case ' ':
+        e.preventDefault(); navigate(1); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp':
+        e.preventDefault(); navigate(-1); break;
+      case 'Home':
+        e.preventDefault(); goTo(1); break;
+      case 'End':
+        e.preventDefault(); goTo(TOTAL); break;
+      default:
+        if(e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey){
+          goTo(parseInt(e.key));
+        }
+    }
+  });
+
+  var touchStartX = 0;
+  var stage = document.getElementById('stage');
+  stage.addEventListener('touchstart', function(e){ touchStartX = e.touches[0].clientX; }, {passive:true});
+  stage.addEventListener('touchend', function(e){
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    if(Math.abs(dx) > 50){ navigate(dx < 0 ? 1 : -1); }
+  }, {passive:true});
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'f' || e.key === 'F'){
+      if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen && document.exitFullscreen();
+      }
+    }
+  });
+
+  goTo(1);
+})();
+</script>
+</body>
+</html>

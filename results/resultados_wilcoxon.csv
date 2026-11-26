@@ -1,0 +1,10 @@
+Cenário,Par,stat,p-valor,significativo (p<0.05),significativo
+S1_10k,FAISS × Milvus,0.0,0.002,✅ Sim,
+S1_10k,FAISS × Chroma,0.0,0.002,✅ Sim,
+S1_10k,Milvus × Chroma,5.0,0.0195,✅ Sim,
+S2_100k,FAISS × Milvus,0.0,0.002,✅ Sim,
+S2_100k,FAISS × Chroma,0.0,0.002,✅ Sim,
+S2_100k,Milvus × Chroma,0.0,0.002,✅ Sim,
+S3_500k,FAISS × Milvus,0.0,0.002,✅ Sim,
+S3_500k,FAISS × Chroma,—,—,,—
+S3_500k,Milvus × Chroma,—,—,,—

@@ -1,0 +1,24 @@
+flowchart TD
+    subgraph ORACLE ["CONSTRUÇÃO DO ORÁCULO · executado offline · seed = 42"]
+        C["Corpus Completo\nN vetores"]
+        Q["Query qᵢ"]
+        F["FAISS IndexFlatIP\nBusca Exata — sem aproximação"]
+        GT["ground_truth qᵢ\ntop-k vizinhos exatos\nv₁ · v₃ · v₅ · ..."]
+        C --> F
+        Q --> F --> GT
+    end
+
+    subgraph APPROX ["ÍNDICES APROXIMADOS · executados por cenário"]
+        I1["FAISS HNSW / IVF\nRetorna top-k aproximado"]
+        I2["Milvus HNSW\nRetorna top-k aproximado"]
+        I3["Chroma HNSW\nRetorna top-k aproximado"]
+    end
+
+    subgraph METRIC ["CÁLCULO DE RECALL@k"]
+        INT["Interseção por query\nRecuperados ∩ Ground Truth\n≠ vazia → acerto"]
+        REC["Recall@k =\nacertos / nº de queries"]
+        INT --> REC
+    end
+
+    GT --> INT
+    I1 & I2 & I3 --> INT

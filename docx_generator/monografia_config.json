@@ -1,0 +1,134 @@
+{
+  "_comentario": "Arquivo de configuração da monografia. Edite os campos abaixo antes de gerar o documento.",
+
+  "instituicao": {
+    "nome": "FACULDADE DE TECNOLOGIA DO ESTADO DE SÃO PAULO",
+    "unidade": "MOGI DAS CRUZES",
+    "curso": "ANÁLISE E DESENVOLVIMENTO DE SISTEMAS"
+  },
+
+  "trabalho": {
+    "tipo": "Trabalho de Conclusão de Curso",
+    "titulo": "COMPARAÇÃO DE BANCOS VETORIAIS APLICADOS A SOLUÇÃO DE GERAÇÃO AUMENTADA DE RECUPERAÇÃO",
+    "subtitulo": null,
+    "natureza": "Trabalho de Conclusão de Curso apresentado ao Curso de Análise e Desenvolvimento de Sistemas como requisito parcial para a obtenção do título de Tecnologo em Análise e Desenvolvimento de Sistemas.",
+    "area": "Área de Concentração: Inteligência Artificial e Recuperação de Informação"
+  },
+
+  "autores": [
+    {
+      "nome_completo": "Breno Alves de Oliveira",
+      "nome_abnt": "OLIVEIRA, Breno"
+    }
+  ],
+
+  "orientacao": {
+    "orientador": "Mariangela Ferreira Fuentes Molina",
+    "orientador_titulo": "Prof. Esp.",
+    "coorientador": null,
+    "coorientador_titulo": null
+  },
+
+  "banca": {
+    "membros": [
+      {
+        "nome": "Membro 1",
+        "titulo": "Prof. Dr.",
+        "instituicao": "Instituição"
+      },
+      {
+        "nome": "Membro 2",
+        "titulo": "Prof. Dr.",
+        "instituicao": "Instituição"
+      },
+      {
+        "nome": "Membro 3",
+        "titulo": "Prof. Dr.",
+        "instituicao": "Instituição"
+      }
+    ],
+    "data_aprovacao": "dd de mês de 2026",
+    "resultado": "<>"
+  },
+
+  "local": {
+    "cidade": "Mogi das Cruzes",
+    "estado": "SP",
+    "pais": "Brasil",
+    "ano": "2026"
+  },
+
+  "dedicatoria": "Aos pesquisadores e engenheiros que constroem, um commit de cada vez, as ferramentas que tornam a inteligência artificial mais acessível e confiável.",
+
+  "agradecimentos": "Agradeço ao meu orientador pela orientação precisa e pelo rigor metodológico que moldaram este trabalho. À minha família, pelo apoio incondicional ao longo da graduação. Aos desenvolvedores do FAISS, Milvus e Chroma, cujo trabalho de código aberto tornou esta pesquisa possível. E à comunidade de pesquisa em recuperação de informação, cujas contribuições fundamentam cada linha deste estudo.",
+
+  "epigrafe": {
+    "texto": "The goal of computer science is to build something that will last at least until you've finished building it.",
+    "autor": "Anonymous"
+  },
+
+  "resumo": {
+    "pt": {
+      "texto": "O presente trabalho realiza uma comparação sistemática e reprodutível entre os bancos de vetores de código aberto FAISS, Milvus e Chroma, avaliando seu desempenho, escalabilidade e qualidade de recuperação semântica quando integrados a fluxos de Geração Aumentada de Recuperação (RAG). Foram conduzidos experimentos em três cenários de escala progressiva (10 mil, 100 mil e 500 mil vetores), coletando métricas operacionais (latência p50 e p99, throughput, tempo de indexação, consumo de RAM e tamanho em disco) e métricas de qualidade de recuperação semântica (Recall@k para k = 1, 5 e 10) com rigor estatístico (intervalo de confiança 95% e teste Wilcoxon). Os resultados evidenciam trade-offs distintos entre as soluções avaliadas e fornecem recomendações práticas para engenheiros e arquitetos de software que precisam selecionar bancos de vetores adequados a diferentes perfis de aplicação RAG. O código-fonte, os conjuntos de dados e os scripts de avaliação são disponibilizados publicamente para replicação.",
+      "palavras_chave": [
+        "bancos de vetores",
+        "geração aumentada de recuperação",
+        "RAG",
+        "busca vetorial",
+        "FAISS",
+        "Milvus",
+        "Chroma",
+        "recuperação de informação",
+        "embeddings",
+        "benchmark"
+      ]
+    },
+    "en": {
+      "titulo": "COMPARISON OF VECTOR DATABASES APPLIED TO RETRIEVAL-AUGMENTED GENERATION SOLUTIONS",
+      "texto": "This work presents a systematic and reproducible comparison of the open-source vector databases FAISS, Milvus, and Chroma, evaluating their performance, scalability, and semantic retrieval quality when integrated into standardized Retrieval-Augmented Generation (RAG) pipelines. Experiments were conducted across three progressive scale scenarios — 10 thousand, 100 thousand, and 500 thousand vectors — collecting operational metrics (p50 and p99 latency, throughput, indexing time, RAM consumption, and disk footprint) and semantic retrieval quality metrics (Recall@k for k = 1, 5, and 10) with statistical rigor (95% confidence intervals and Wilcoxon tests). Results reveal distinct trade-offs among the evaluated solutions and provide practical recommendations for engineers and software architects selecting vector databases for different RAG application profiles. Source code, datasets, and evaluation scripts are made publicly available for replication.",
+      "keywords": [
+        "vector databases",
+        "retrieval-augmented generation",
+        "RAG",
+        "vector search",
+        "FAISS",
+        "Milvus",
+        "Chroma",
+        "information retrieval",
+        "embeddings",
+        "benchmark"
+      ]
+    }
+  },
+
+  "listas": {
+    "gerar_lista_figuras": true,
+    "gerar_lista_tabelas": false,
+    "gerar_lista_abreviaturas": false,
+    "abreviaturas": {
+      "ABNT": "Associação Brasileira de Normas Técnicas",
+      "ANN": "Approximate Nearest Neighbor (Vizinho Mais Próximo Aproximado)",
+      "API": "Application Programming Interface (Interface de Programação de Aplicações)",
+      "CPU": "Central Processing Unit (Unidade Central de Processamento)",
+      "CSV": "Comma-Separated Values (Valores Separados por Vírgula)",
+      "GPU": "Graphics Processing Unit (Unidade de Processamento Gráfico)",
+      "HNSW": "Hierarchical Navigable Small World (Grafo Hierárquico de Mundo Pequeno Navegável)",
+      "IC": "Intervalo de Confiança",
+      "IVF": "Inverted File Index (Índice de Arquivo Invertido)",
+      "JSON": "JavaScript Object Notation",
+      "KNN": "K-Nearest Neighbors (K-Vizinhos Mais Próximos)",
+      "LLM": "Large Language Model (Grande Modelo de Linguagem)",
+      "PLN": "Processamento de Linguagem Natural",
+      "PQ": "Product Quantization (Quantização de Produto)",
+      "QPS": "Queries Per Second (Consultas por Segundo)",
+      "RAG": "Retrieval-Augmented Generation (Geração Aumentada de Recuperação)",
+      "RAM": "Random Access Memory (Memória de Acesso Aleatório)",
+      "TCC": "Trabalho de Conclusão de Curso"
+    }
+  },
+
+  "repositorio": {
+    "url": "https://github.com/BrenooOliveira/AulasFatec/blob/main/tcc/benchmark_rag_vectordbs.ipynb",
+    "licenca": "MIT"
+  }
+}

@@ -1,0 +1,6 @@
+flowchart LR
+    S1["S1 - 10k vetores\nAG News + embeddings reais"] --> S2["S2 - 100k vetores\nvetores sinteticos normalizados"]
+    S2 --> S3["S3 - 500k vetores\nvetores sinteticos normalizados"]
+    S1 --> C1["escala pequena"]
+    S2 --> C2["escala intermediaria"]
+    S3 --> C3["escala alta"]

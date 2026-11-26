@@ -1,0 +1,38 @@
+{
+  "data_execucao": "2026-08-21T01:25:31.347455",
+  "sistema": {
+    "os": "Linux 6.6.122+",
+    "arquitetura": "x86_64",
+    "python": "3.12.13",
+    "cpu_fisicos": 1,
+    "cpu_logicos": 2,
+    "ram_total_gb": 12.67
+  },
+  "bibliotecas": {
+    "faiss-cpu": "1.9.0",
+    "chromadb": "0.6.3",
+    "pymilvus": "2.5.8",
+    "sentence-transformers": "3.4.1",
+    "datasets": "3.2.0",
+    "numpy": "2.0.2",
+    "pandas": "2.2.3",
+    "scipy": "1.15.2",
+    "psutil": "6.1.1",
+    "matplotlib": "3.10.0",
+    "seaborn": "0.13.2"
+  },
+  "experimento": {
+    "seed": 42,
+    "embedding_dim": 384,
+    "modelo_s1": "sentence-transformers/all-MiniLM-L6-v2",
+    "metrica": "Inner Product (cosine em vetores normalizados)",
+    "n_queries": 200,
+    "n_runs": 10,
+    "cenarios": {
+      "S1_10k": 10000,
+      "S2_100k": 100000,
+      "S3_500k": 500000
+    },
+    "colab_mode": true
+  }
+}

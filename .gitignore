@@ -1,0 +1,5 @@
+.venv/
+# Bancos de dados e índices locais gerados pelo benchmark
+results/chroma_*
+results/milvus_*
+results/faiss_indices/

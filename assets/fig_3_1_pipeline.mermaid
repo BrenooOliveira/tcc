@@ -1,0 +1,29 @@
+flowchart TD
+    subgraph INGEST ["FASE 1 — INDEXAÇÃO"]
+        A["Corpus\nAG News · S1 · 10k\nSintético · S2 · 100k\nSintético · S3 · 500k"]
+        B["Geração de Embeddings\nall-MiniLM-L6-v2\n384 dimensões"]
+        C["L2-Normalization\n‖v‖₂ = 1"]
+        D{"Banco de Vetores\nVariável Independente"}
+        D1["FAISS\nFlat · HNSW · IVF"]
+        D2["Milvus\nFlat · HNSW"]
+        D3["Chroma\nHNSW automático"]
+        A --> B --> C --> D
+        D --> D1 & D2 & D3
+    end
+
+    subgraph QUERY ["FASE 2 — BUSCA"]
+        Q["200 Queries por Cenário\nmesmas para todos os bancos"]
+        QE["Embedding da Query\nall-MiniLM-L6-v2"]
+        S["Busca por Similaridade\nInner Product"]
+        R["Top-k Resultados"]
+        Q --> QE --> S --> R
+        D1 & D2 & D3 --> S
+    end
+
+    subgraph EVAL ["FASE 3 — AVALIAÇÃO"]
+        GT["Ground Truth\nFAISS IndexFlatIP\nBusca Exata · offline"]
+        M["Comparação por Interseção"]
+        K["Recall@k · Latência p50·p99\nQPS · RAM · Disco"]
+        GT --> M
+        R --> M --> K
+    end
